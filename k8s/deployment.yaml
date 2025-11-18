@@ -5,7 +5,7 @@ metadata:
   labels:
     app: lovetest-admin
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: lovetest-admin
@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: lovetest-admin
-        image: lovetest-admin:latest
+        image: omaticaya/lovetest-admin:latest
         ports:
         - containerPort: 80
           protocol: TCP
