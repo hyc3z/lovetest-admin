@@ -10,12 +10,14 @@ A beautiful Monet-inspired admin dashboard for managing activation codes, built 
 
 - 🎨 **Monet-Inspired Design** - Soft, impressionist color palette with dreamy gradients
 - 🌍 **i18n Support** - Full Chinese and English translations with flag-based language switcher
-- 📊 **Bulk Operations** - Create thousands of codes at once, multi-select delete
-- 🔍 **Search & Filter** - Real-time search across codes, users, and statuses
-- 📄 **Pagination** - Efficient handling of 20,000+ records with 100 items per page
-- ✏️ **CRUD Operations** - Create, read, update, and delete activation codes
-- 🔐 **Authentication** - Secure login system (demo: admin/admin123)
+- 📊 **Bulk Operations** - Create up to 20,000 codes at once
+- 🔍 **Search & Filter** - Real-time search across activation codes
+- 📄 **Pagination** - Efficient handling with skip token pagination
+- ✏️ **Code Management** - Create and delete activation codes
+- 🔐 **Authentication** - JWT-based secure login with password change support
+- 📈 **Statistics Dashboard** - Real-time stats for total, used, unused, and active codes
 - 🐳 **Docker Ready** - One-command deployment with Docker
+- 🔌 **API Integration** - Full integration with Activation Code API
 
 ## Quick Start
 
@@ -75,10 +77,28 @@ Required secrets for CI/CD:
 
 ### Environment Variables
 
-Currently using demo data. To connect to a real backend:
-1. Update API endpoints in `src/components/Dashboard.tsx`
-2. Replace authentication logic in `src/App.tsx`
-3. Add environment variables for API URLs
+Create a `.env` file in the project root:
+
+```bash
+# API Base URL (default: https://api.lovetest.com.cn)
+VITE_API_BASE_URL=https://api.lovetest.com.cn
+```
+
+The application connects to the Activation Code API. See [API_DOCUMENTATION.md](./API_DOCUMENTATION.md) for full API details.
+
+### API Integration
+
+This admin dashboard integrates with the following API endpoints:
+
+- `POST /api/admin/login` - Admin authentication
+- `POST /api/admin/change-password` - Change admin password
+- `POST /api/admin/generate-codes` - Generate activation codes (1-20,000)
+- `GET /api/admin/codes` - List codes with pagination
+- `GET /api/admin/stats` - Get statistics
+- `DELETE /api/admin/codes/{code}` - Delete specific code
+- `DELETE /api/admin/codes/expired` - Delete all expired codes
+
+All admin endpoints (except login) require JWT authentication.
 
 ## Project Structure
 
@@ -138,10 +158,13 @@ Monet-inspired gradient background with floating animations
 
 MIT License - feel free to use this project for your own purposes.
 
-## Demo Credentials
+## Default Credentials
 
+The default admin credentials are set on the backend API:
 - **Username**: admin
-- **Password**: admin123
+- **Password**: admin
+
+**Important**: Change the default password immediately after first login using the "Change Password" feature in the dashboard.
 
 ## Support
 

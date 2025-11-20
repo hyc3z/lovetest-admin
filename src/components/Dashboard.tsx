@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLanguage } from '../i18n/LanguageContext';
-import type { ActivationCode, User } from '../types';
+import { apiService } from '../services/api';
+import type { ActivationCode, User, StatsResponse } from '../types';
 import CodeList from './CodeList';
 import CodeEditor from './CodeEditor';
+import ChangePassword from './ChangePassword';
 import LanguageSwitcher from './LanguageSwitcher';
 import './Dashboard.css';
 
@@ -11,85 +13,110 @@ interface DashboardProps {
   onLogout: () => void;
 }
 
-// Generate demo data
-const generateDemoCodes = (count: number): ActivationCode[] => {
-  const codes: ActivationCode[] = [];
-  const statuses: ActivationCode['status'][] = ['active', 'inactive', 'used'];
-
-  for (let i = 1; i <= count; i++) {
-    const status = statuses[Math.floor(Math.random() * statuses.length)];
-    const code: ActivationCode = {
-      id: i.toString(),
-      code: `ACT-2024-${String(i).padStart(6, '0')}`,
-      status,
-      createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
-    };
-
-    if (status === 'used') {
-      code.usedAt = new Date(Date.now() - Math.random() * 10 * 24 * 60 * 60 * 1000).toISOString();
-      code.userId = `user${Math.floor(Math.random() * 1000)}`;
-    }
-
-    codes.push(code);
-  }
-
-  return codes;
-};
-
 export default function Dashboard({ user, onLogout }: DashboardProps) {
   const { t } = useLanguage();
-  const [codes, setCodes] = useState<ActivationCode[]>(() => generateDemoCodes(20000));
-  const [editingCode, setEditingCode] = useState<ActivationCode | null>(null);
+  const [codes, setCodes] = useState<ActivationCode[]>([]);
+  const [stats, setStats] = useState<StatsResponse | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [nextSkipToken, setNextSkipToken] = useState<number | null>(null);
+  const [hasMore, setHasMore] = useState(false);
 
-  const generateCode = (index: number): string => {
-    const timestamp = Date.now();
-    return `ACT-${new Date().getFullYear()}-${String(timestamp + index).slice(-6)}`;
+  const loadCodes = async (skipToken?: number) => {
+    try {
+      const response = await apiService.getCodes(undefined, skipToken, 100);
+      if (skipToken) {
+        setCodes(prev => [...prev, ...response.codes]);
+      } else {
+        setCodes(response.codes);
+      }
+      setNextSkipToken(response.nextSkipToken);
+      setHasMore(response.hasMore);
+    } catch (err) {
+      console.error('Failed to load codes:', err);
+      alert(err instanceof Error ? err.message : 'Failed to load codes');
+    }
   };
 
-  const handleEdit = (code: ActivationCode) => {
-    setEditingCode(code);
-    setIsCreating(false);
+  const loadStats = async () => {
+    try {
+      const statsData = await apiService.getStats();
+      setStats(statsData);
+    } catch (err) {
+      console.error('Failed to load stats:', err);
+    }
   };
+
+  useEffect(() => {
+    Promise.all([loadCodes(), loadStats()])
+      .finally(() => setLoading(false));
+  }, []);
 
   const handleCreate = () => {
     setIsCreating(true);
-    setEditingCode(null);
   };
 
-  const handleSave = (code: ActivationCode, count?: number) => {
-    if (isCreating && count) {
-      // Bulk create
-      const newCodes: ActivationCode[] = [];
-      const baseTimestamp = Date.now();
-
-      for (let i = 0; i < count; i++) {
-        newCodes.push({
-          id: `${baseTimestamp}-${i}`,
-          code: generateCode(i),
-          status: code.status,
-          createdAt: new Date().toISOString(),
-        });
-      }
-
-      setCodes([...newCodes, ...codes]);
-    } else if (!isCreating) {
-      // Edit existing
-      setCodes(codes.map(c => (c.id === code.id ? code : c)));
+  const handleSave = async (count: number, prefix?: string) => {
+    try {
+      await apiService.generateCodes({ count, prefix });
+      setIsCreating(false);
+      // Reload codes and stats
+      await Promise.all([loadCodes(), loadStats()]);
+      alert(t.success);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to generate codes');
     }
-
-    setEditingCode(null);
-    setIsCreating(false);
   };
 
-  const handleDelete = (ids: string[]) => {
-    setCodes(codes.filter(c => !ids.includes(c.id)));
+  const handleDelete = async (code: string) => {
+    if (!confirm(t.deleteConfirm)) return;
+    
+    try {
+      await apiService.deleteCode(code);
+      await Promise.all([loadCodes(), loadStats()]);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to delete code');
+    }
+  };
+
+  const handleDeleteExpired = async () => {
+    if (!confirm(t.deleteExpiredConfirm)) return;
+    
+    try {
+      const result = await apiService.deleteExpiredCodes();
+      alert(result.message);
+      await Promise.all([loadCodes(), loadStats()]);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to delete expired codes');
+    }
   };
 
   const handleCancel = () => {
-    setEditingCode(null);
     setIsCreating(false);
   };
+
+  const handleLoadMore = () => {
+    if (nextSkipToken !== null) {
+      loadCodes(nextSkipToken);
+    }
+  };
+
+  const handleRefresh = () => {
+    setLoading(true);
+    Promise.all([loadCodes(), loadStats()])
+      .finally(() => setLoading(false));
+  };
+
+  if (loading) {
+    return (
+      <div className="dashboard">
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+          {t.loading}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="dashboard">
@@ -98,6 +125,9 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
           <h1>{t.dashboardTitle}</h1>
           <div className="header-actions">
             <LanguageSwitcher />
+            <button onClick={() => setShowChangePassword(true)} className="change-password-button">
+              {t.changePassword}
+            </button>
             <span className="user-info">
               {t.welcome}, {user.username}
             </span>
@@ -108,20 +138,51 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
         </div>
       </header>
 
+      {stats && (
+        <div className="stats-bar">
+          <div className="stat-item">
+            <span className="stat-label">{t.totalCodes}:</span>
+            <span className="stat-value">{stats.totalCodes}</span>
+          </div>
+          <div className="stat-item">
+            <span className="stat-label">{t.unusedCodes}:</span>
+            <span className="stat-value">{stats.unusedCodes}</span>
+          </div>
+          <div className="stat-item">
+            <span className="stat-label">{t.usedCodes}:</span>
+            <span className="stat-value">{stats.usedCodes}</span>
+          </div>
+          <div className="stat-item">
+            <span className="stat-label">{t.activeCodes}:</span>
+            <span className="stat-value">{stats.activeCodes}</span>
+          </div>
+        </div>
+      )}
+
       <main className="dashboard-main">
         <div className="dashboard-content">
-          {editingCode !== null || isCreating ? (
-            <CodeEditor
-              code={editingCode}
-              isCreating={isCreating}
-              onSave={handleSave}
-              onCancel={handleCancel}
-            />
+          {isCreating ? (
+            <CodeEditor onSave={handleSave} onCancel={handleCancel} />
           ) : (
-            <CodeList codes={codes} onEdit={handleEdit} onDelete={handleDelete} onCreate={handleCreate} />
+            <CodeList
+              codes={codes}
+              onDelete={handleDelete}
+              onCreate={handleCreate}
+              onDeleteExpired={handleDeleteExpired}
+              onLoadMore={handleLoadMore}
+              onRefresh={handleRefresh}
+              hasMore={hasMore}
+            />
           )}
         </div>
       </main>
+
+      {showChangePassword && (
+        <ChangePassword
+          onClose={() => setShowChangePassword(false)}
+          onSuccess={() => {}}
+        />
+      )}
     </div>
   );
 }

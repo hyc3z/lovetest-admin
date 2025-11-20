@@ -4,7 +4,7 @@ import LanguageSwitcher from './LanguageSwitcher';
 import './Login.css';
 
 interface LoginProps {
-  onLogin: (username: string, password: string, errorMsg: string) => void;
+  onLogin: (username: string, password: string) => Promise<void>;
 }
 
 export default function Login({ onLogin }: LoginProps) {
@@ -12,8 +12,9 @@ export default function Login({ onLogin }: LoginProps) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -22,7 +23,14 @@ export default function Login({ onLogin }: LoginProps) {
       return;
     }
 
-    onLogin(username, password, t.invalidCredentials);
+    setLoading(true);
+    try {
+      await onLogin(username, password);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t.invalidCredentials);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -44,6 +52,7 @@ export default function Login({ onLogin }: LoginProps) {
               onChange={e => setUsername(e.target.value)}
               placeholder={t.enterUsername}
               autoComplete="username"
+              disabled={loading}
             />
           </div>
 
@@ -56,17 +65,16 @@ export default function Login({ onLogin }: LoginProps) {
               onChange={e => setPassword(e.target.value)}
               placeholder={t.enterPassword}
               autoComplete="current-password"
+              disabled={loading}
             />
           </div>
 
           {error && <div className="error-message">{error}</div>}
 
-          <button type="submit" className="login-button">
-            {t.signIn}
+          <button type="submit" className="login-button" disabled={loading}>
+            {loading ? t.loggingIn : t.signIn}
           </button>
         </form>
-
-        <p className="demo-hint">{t.demoHint}</p>
       </div>
     </div>
   );

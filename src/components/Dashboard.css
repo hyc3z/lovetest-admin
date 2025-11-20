@@ -95,3 +95,61 @@
   position: relative;
   z-index: 1;
 }
+
+.change-password-button {
+  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, #6b9ac4 0%, #97b8c4 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(107, 154, 196, 0.3);
+}
+
+.change-password-button:hover {
+  background: linear-gradient(135deg, #97b8c4 0%, #6b9ac4 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(107, 154, 196, 0.4);
+}
+
+.stats-bar {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem 2rem;
+  display: flex;
+  gap: 2rem;
+  justify-content: space-around;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 16px rgba(168, 213, 226, 0.15);
+  position: relative;
+  z-index: 1;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.stat-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #6b9ac4 0%, #97b8c4 50%, #b8a5a5 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
