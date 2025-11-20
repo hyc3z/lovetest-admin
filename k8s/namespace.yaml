@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: lovetest
+  name: lovetest-admin
   labels:
-    name: lovetest
+    name: lovetest-admin
     managed-by: argocd
