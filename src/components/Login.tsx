@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useLanguage } from '../i18n/LanguageContext';
 import LanguageSwitcher from './LanguageSwitcher';
+import VersionBadge from './VersionBadge';
 import './Login.css';
 
 interface LoginProps {
@@ -35,6 +36,7 @@ export default function Login({ onLogin }: LoginProps) {
 
   return (
     <div className="login-container">
+      <VersionBadge />
       <div className="login-lang-switcher">
         <LanguageSwitcher />
       </div>

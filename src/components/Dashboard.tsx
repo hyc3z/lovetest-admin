@@ -6,6 +6,7 @@ import CodeList from './CodeList';
 import CodeEditor from './CodeEditor';
 import ChangePassword from './ChangePassword';
 import LanguageSwitcher from './LanguageSwitcher';
+import VersionBadge from './VersionBadge';
 import './Dashboard.css';
 
 interface DashboardProps {
@@ -120,6 +121,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
 
   return (
     <div className="dashboard">
+      <VersionBadge />
       <header className="dashboard-header">
         <div className="header-content">
           <h1>{t.dashboardTitle}</h1>

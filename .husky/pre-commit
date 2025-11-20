@@ -1,0 +1,10 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+# 自动递增版本号
+npm run version:bump
+
+# 将更新后的 package.json 添加到本次提交
+git add package.json
+
+echo "✅ Version bumped and added to commit"
