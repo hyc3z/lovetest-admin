@@ -69,9 +69,15 @@ export interface Translations {
   changePasswordTitle: string;
   oldPassword: string;
   newPassword: string;
+  confirmPassword: string;
   enterOldPassword: string;
   enterNewPassword: string;
+  enterConfirmPassword: string;
+  enterAllFields: string;
   passwordMinLength: string;
+  passwordsNotMatch: string;
+  passwordsMatch: string;
+  passwordsSame: string;
   passwordChanged: string;
   changePasswordButton: string;
 
@@ -157,9 +163,15 @@ export const translations: Record<Language, Translations> = {
     changePasswordTitle: 'Change Password',
     oldPassword: 'Current Password',
     newPassword: 'New Password',
+    confirmPassword: 'Confirm New Password',
     enterOldPassword: 'Enter current password',
     enterNewPassword: 'Enter new password',
+    enterConfirmPassword: 'Confirm new password',
+    enterAllFields: 'Please fill in all fields',
     passwordMinLength: 'Password must be at least 6 characters',
+    passwordsNotMatch: 'Passwords do not match',
+    passwordsMatch: 'Passwords match',
+    passwordsSame: 'New password must be different from current password',
     passwordChanged: 'Password changed successfully',
     changePasswordButton: 'Change Password',
 
@@ -244,9 +256,15 @@ export const translations: Record<Language, Translations> = {
     changePasswordTitle: '修改密码',
     oldPassword: '当前密码',
     newPassword: '新密码',
+    confirmPassword: '确认新密码',
     enterOldPassword: '输入当前密码',
     enterNewPassword: '输入新密码',
+    enterConfirmPassword: '再次输入新密码',
+    enterAllFields: '请填写所有字段',
     passwordMinLength: '密码至少需要6个字符',
+    passwordsNotMatch: '两次输入的密码不一致',
+    passwordsMatch: '密码匹配',
+    passwordsSame: '新密码不能与当前密码相同',
     passwordChanged: '密码修改成功',
     changePasswordButton: '修改密码',
 

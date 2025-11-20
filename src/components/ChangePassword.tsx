@@ -12,20 +12,34 @@ export default function ChangePassword({ onClose, onSuccess }: ChangePasswordPro
   const { t } = useLanguage();
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const passwordsMatch = newPassword && confirmPassword && newPassword === confirmPassword;
+  const passwordValid = newPassword.length >= 6;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (!oldPassword || !newPassword) {
-      setError(t.enterBothCredentials);
+    if (!oldPassword || !newPassword || !confirmPassword) {
+      setError(t.enterAllFields);
       return;
     }
 
     if (newPassword.length < 6) {
       setError(t.passwordMinLength);
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setError(t.passwordsNotMatch);
+      return;
+    }
+
+    if (oldPassword === newPassword) {
+      setError(t.passwordsSame);
       return;
     }
 
@@ -74,7 +88,34 @@ export default function ChangePassword({ onClose, onSuccess }: ChangePasswordPro
               placeholder={t.enterNewPassword}
               autoComplete="new-password"
               disabled={loading}
+              className={newPassword && !passwordValid ? 'input-error' : ''}
             />
+            {newPassword && !passwordValid && (
+              <span className="field-hint error">{t.passwordMinLength}</span>
+            )}
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="confirmPassword">{t.confirmPassword}</label>
+            <input
+              id="confirmPassword"
+              type="password"
+              value={confirmPassword}
+              onChange={e => setConfirmPassword(e.target.value)}
+              placeholder={t.enterConfirmPassword}
+              autoComplete="new-password"
+              disabled={loading}
+              className={
+                confirmPassword && newPassword !== confirmPassword ? 'input-error' : 
+                passwordsMatch ? 'input-success' : ''
+              }
+            />
+            {confirmPassword && newPassword !== confirmPassword && (
+              <span className="field-hint error">{t.passwordsNotMatch}</span>
+            )}
+            {passwordsMatch && (
+              <span className="field-hint success">✓ {t.passwordsMatch}</span>
+            )}
           </div>
 
           {error && <div className="error-message">{error}</div>}
