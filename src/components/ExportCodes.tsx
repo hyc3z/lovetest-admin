@@ -15,7 +15,7 @@ interface PreviewResult {
 
 export default function ExportCodes({ onClose }: ExportCodesProps) {
   const { t } = useLanguage();
-  const { showSuccess, showError, ModalComponent } = useModal();
+  const { showSuccess, ModalComponent } = useModal();
   const [pattern, setPattern] = useState('');
   const [useRegex, setUseRegex] = useState(false);
   const [loading, setLoading] = useState(false);
