@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: lovetest-admin
-        image: omaticaya/lovetest-admin:latest
+        image: omaticaya/lovetest-admin:v2.0.0
         ports:
         - containerPort: 80
           protocol: TCP

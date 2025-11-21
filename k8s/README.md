@@ -323,22 +323,71 @@ kubectl port-forward -n lovetest svc/lovetest-admin-service 8080:80
 
 ## CI/CD 集成
 
-### GitHub Actions
+### 自动版本管理
 
-项目已配置自动构建和推送 Docker 镜像到 Docker Hub。
+项目使用 GitHub Actions 自动管理版本和部署：
 
-ArgoCD 会自动检测镜像更新并部署。
+1. **自动版本递增**：每次提交到 main/master 分支时，自动递增 patch 版本
+2. **构建 Docker 镜像**：使用新版本号构建并推送到 Docker Hub
+3. **更新 K8s 配置**：自动更新 `kustomization.yaml` 和 `deployment.yaml` 中的镜像版本
+4. **提交版本变更**：将版本变更提交回仓库（带 `[skip ci]` 标记避免循环）
+
+### 版本文件
+
+- `VERSION` - 当前版本号（如 v2.0.1）
+- `package.json` - npm 包版本
+- `k8s/kustomization.yaml` - Kustomize 镜像标签
+- `k8s/deployment.yaml` - Deployment 镜像版本
+
+### GitHub Actions 工作流
+
+**docker-build.yml** - 主构建流程：
+- 触发条件：推送到 main/master 分支
+- 自动递增版本号（patch）
+- 构建多架构镜像（amd64, arm64）
+- 推送到 Docker Hub（版本标签 + latest）
+- 提交版本变更回仓库
+
+**docker-release.yml** - 发布流程：
+- 触发条件：创建 GitHub Release
+- 使用 Release 标签作为版本号
+- 构建并推送正式版本
+
+### ArgoCD 自动同步
+
+ArgoCD 监控 Git 仓库的 `k8s/` 目录：
+- 检测到 `kustomization.yaml` 或 `deployment.yaml` 变更时自动同步
+- 使用新版本镜像滚动更新 Pod
+- 自动修复配置漂移
 
 ### 手动触发部署
 
 ```bash
-# 更新镜像标签
+# 方法1：通过 GitHub Actions 手动触发
+# 在 GitHub 仓库页面 -> Actions -> Build and Push Docker Image -> Run workflow
+
+# 方法2：直接更新镜像标签
 kubectl set image deployment/lovetest-admin \
-  lovetest-admin=omaticaya/lovetest-admin:latest \
+  lovetest-admin=omaticaya/lovetest-admin:v2.0.1 \
   -n lovetest
 
-# 或使用 kubectl apply
+# 方法3：使用 kubectl apply
 kubectl apply -k k8s/
+```
+
+### 版本回滚
+
+```bash
+# 查看历史版本
+kubectl rollout history deployment/lovetest-admin -n lovetest
+
+# 回滚到上一个版本
+kubectl rollout undo deployment/lovetest-admin -n lovetest
+
+# 或手动指定版本
+# 1. 修改 k8s/kustomization.yaml 中的 newTag
+# 2. 提交并推送
+# 3. ArgoCD 自动同步
 ```
 
 ## 最佳实践

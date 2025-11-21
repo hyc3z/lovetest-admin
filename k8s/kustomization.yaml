@@ -16,6 +16,6 @@ commonLabels:
 
 images:
   - name: omaticaya/lovetest-admin
-    newTag: latest
+    newTag: v2.0.0
 
 namespace: lovetest-admin

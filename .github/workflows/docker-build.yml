@@ -5,21 +5,35 @@ on:
     branches:
       - main
       - master
-      - develop
-    tags:
-      - 'v*'
-  pull_request:
-    branches:
-      - main
-      - master
+    paths-ignore:
+      - 'VERSION'
+      - 'k8s/**'
+      - 'package.json'
+  workflow_dispatch:
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Bump version
+        id: bump
+        run: |
+          chmod +x scripts/bump-version.sh
+          bash scripts/bump-version.sh
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -30,31 +44,26 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ secrets.DOCKERHUB_USERNAME }}/${{ vars.DOCKER_IMAGE_NAME }}
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
-
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ vars.DOCKER_IMAGE_NAME }}:${{ steps.bump.outputs.NEW_VERSION }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ vars.DOCKER_IMAGE_NAME }}:latest
+          labels: |
+            org.opencontainers.image.version=${{ steps.bump.outputs.NEW_VERSION }}
+            org.opencontainers.image.source=${{ github.event.repository.html_url }}
           cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/${{ vars.DOCKER_IMAGE_NAME }}:buildcache
           cache-to: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/${{ vars.DOCKER_IMAGE_NAME }}:buildcache,mode=max
           platforms: linux/amd64,linux/arm64
 
-      - name: Image digest
-        run: echo ${{ steps.meta.outputs.digest }}
+      - name: Commit version changes
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add package.json k8s/kustomization.yaml k8s/deployment.yaml VERSION
+          git commit -m "chore: bump version to ${{ steps.bump.outputs.NEW_VERSION }} [skip ci]" || echo "No changes to commit"
+          git push
