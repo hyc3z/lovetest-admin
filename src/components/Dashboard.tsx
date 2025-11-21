@@ -6,8 +6,10 @@ import CodeList from './CodeList';
 import CodeEditor from './CodeEditor';
 import ChangePassword from './ChangePassword';
 import BatchDelete from './BatchDelete';
+import ExportCodes from './ExportCodes';
 import LanguageSwitcher from './LanguageSwitcher';
 import VersionBadge from './VersionBadge';
+import { useModal } from '../hooks/useModal';
 import './Dashboard.css';
 
 interface DashboardProps {
@@ -17,11 +19,13 @@ interface DashboardProps {
 
 export default function Dashboard({ user, onLogout }: DashboardProps) {
   const { t } = useLanguage();
+  const { showSuccess, showError, showConfirm, ModalComponent } = useModal();
   const [codes, setCodes] = useState<ActivationCode[]>([]);
   const [stats, setStats] = useState<StatsResponse | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [showBatchDelete, setShowBatchDelete] = useState(false);
+  const [showExport, setShowExport] = useState(false);
   const [loading, setLoading] = useState(true);
   const [nextSkipToken, setNextSkipToken] = useState<number | null>(null);
   const [hasMore, setHasMore] = useState(false);
@@ -38,7 +42,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
       setHasMore(response.hasMore);
     } catch (err) {
       console.error('Failed to load codes:', err);
-      alert(err instanceof Error ? err.message : 'Failed to load codes');
+      showError(err instanceof Error ? err.message : 'Failed to load codes');
     }
   };
 
@@ -66,33 +70,33 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
       setIsCreating(false);
       // Reload codes and stats
       await Promise.all([loadCodes(), loadStats()]);
-      alert(t.success);
+      showSuccess(t.success);
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to generate codes');
+      showError(err instanceof Error ? err.message : 'Failed to generate codes');
     }
   };
 
   const handleDelete = async (code: string) => {
-    if (!confirm(t.deleteConfirm)) return;
-    
-    try {
-      await apiService.deleteCode(code);
-      await Promise.all([loadCodes(), loadStats()]);
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to delete code');
-    }
+    showConfirm(t.deleteConfirm, async () => {
+      try {
+        await apiService.deleteCode(code);
+        await Promise.all([loadCodes(), loadStats()]);
+      } catch (err) {
+        showError(err instanceof Error ? err.message : 'Failed to delete code');
+      }
+    });
   };
 
   const handleDeleteExpired = async () => {
-    if (!confirm(t.deleteExpiredConfirm)) return;
-    
-    try {
-      const result = await apiService.deleteExpiredCodes();
-      alert(result.message);
-      await Promise.all([loadCodes(), loadStats()]);
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to delete expired codes');
-    }
+    showConfirm(t.deleteExpiredConfirm, async () => {
+      try {
+        const result = await apiService.deleteExpiredCodes();
+        showSuccess(result.message);
+        await Promise.all([loadCodes(), loadStats()]);
+      } catch (err) {
+        showError(err instanceof Error ? err.message : 'Failed to delete expired codes');
+      }
+    });
   };
 
   const handleCancel = () => {
@@ -174,6 +178,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
               onCreate={handleCreate}
               onDeleteExpired={handleDeleteExpired}
               onBatchDelete={() => setShowBatchDelete(true)}
+              onExport={() => setShowExport(true)}
               onLoadMore={handleLoadMore}
               onRefresh={handleRefresh}
               hasMore={hasMore}
@@ -197,6 +202,14 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
           }}
         />
       )}
+
+      {showExport && (
+        <ExportCodes
+          onClose={() => setShowExport(false)}
+        />
+      )}
+
+      {ModalComponent}
     </div>
   );
 }

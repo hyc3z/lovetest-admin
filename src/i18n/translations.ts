@@ -116,9 +116,23 @@ export interface Translations {
   confirmDelete: string;
   deleting: string;
 
+  // Export Codes
+  exportCodesTitle: string;
+  exportPattern: string;
+  exportPatternPlaceholder: string;
+  exportAllHint: string;
+  exportPreviewLabel: string;
+  exportInfo: string;
+  confirmExport: string;
+  moreItems: string;
+
   // Messages
   error: string;
   success: string;
+  warning: string;
+  info: string;
+  confirm: string;
+  ok: string;
 }
 
 export const translations: Record<Language, Translations> = {
@@ -238,9 +252,23 @@ export const translations: Record<Language, Translations> = {
     confirmDelete: 'Confirm Delete',
     deleting: 'Deleting...',
 
+    // Export Codes
+    exportCodesTitle: 'Export Activation Codes',
+    exportPattern: 'Filter Pattern',
+    exportPatternPlaceholder: 'Enter pattern (leave empty to export all)',
+    exportAllHint: 'Leave empty to export all codes',
+    exportPreviewLabel: 'Preview (first 10 and last)',
+    exportInfo: 'All matched codes will be exported to a text file',
+    confirmExport: 'Export Codes',
+    moreItems: 'more items',
+
     // Messages
     error: 'Error',
     success: 'Success',
+    warning: 'Warning',
+    info: 'Information',
+    confirm: 'Confirm',
+    ok: 'OK',
   },
 
   zh: {
@@ -359,8 +387,22 @@ export const translations: Record<Language, Translations> = {
     confirmDelete: '确认删除',
     deleting: '删除中...',
 
+    // Export Codes
+    exportCodesTitle: '导出激活码',
+    exportPattern: '筛选模式',
+    exportPatternPlaceholder: '输入模式（留空导出全部）',
+    exportAllHint: '留空将导出所有激活码',
+    exportPreviewLabel: '预览（前10条和最后1条）',
+    exportInfo: '所有匹配的激活码将导出到文本文件',
+    confirmExport: '导出激活码',
+    moreItems: '项',
+
     // Messages
     error: '错误',
     success: '成功',
+    warning: '警告',
+    info: '提示',
+    confirm: '确认',
+    ok: '确定',
   },
 };

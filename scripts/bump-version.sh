@@ -33,3 +33,5 @@ sed -i.bak "s|image: omaticaya/lovetest-admin:.*|image: omaticaya/lovetest-admin
 
 echo "v$NEW_VERSION" > VERSION
 echo "NEW_VERSION=v$NEW_VERSION" >> $GITHUB_OUTPUT
+
+echo "✅ Version bumped to: $NEW_VERSION"

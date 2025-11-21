@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useLanguage } from '../i18n/LanguageContext';
-import { apiService } from '../services/api';
 import type { ActivationCode } from '../types';
+import { useModal } from '../hooks/useModal';
 import './CodeList.css';
 
 interface CodeListProps {
@@ -10,15 +10,16 @@ interface CodeListProps {
   onCreate: () => void;
   onDeleteExpired: () => void;
   onBatchDelete: () => void;
+  onExport: () => void;
   onLoadMore: () => void;
   onRefresh: () => void;
   hasMore: boolean;
 }
 
-export default function CodeList({ codes, onDelete, onCreate, onDeleteExpired, onBatchDelete, onLoadMore, onRefresh, hasMore }: CodeListProps) {
+export default function CodeList({ codes, onDelete, onCreate, onDeleteExpired, onBatchDelete, onExport, onLoadMore, onRefresh, hasMore }: CodeListProps) {
   const { t } = useLanguage();
+  const { ModalComponent } = useModal();
   const [searchQuery, setSearchQuery] = useState('');
-  const [exporting, setExporting] = useState(false);
 
   const filteredCodes = useMemo(() => {
     if (!searchQuery) return codes;
@@ -48,46 +49,6 @@ export default function CodeList({ codes, onDelete, onCreate, onDeleteExpired, o
     setSearchQuery(value);
   };
 
-  const handleExport = async () => {
-    setExporting(true);
-    try {
-      // 获取所有激活码
-      const allCodes = await apiService.getAllCodes();
-      
-      // 创建文本内容（每行一个激活码）
-      const content = allCodes.join('\n');
-      
-      // 创建Blob对象
-      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-      
-      // 创建下载链接
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      
-      // 生成文件名（包含日期时间）
-      const now = new Date();
-      const timestamp = now.toISOString().replace(/[:.]/g, '-').slice(0, -5);
-      link.download = `activation-codes-${timestamp}.txt`;
-      
-      // 触发下载
-      document.body.appendChild(link);
-      link.click();
-      
-      // 清理
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      
-      // 显示成功消息
-      alert(t.exportSuccess.replace('{count}', allCodes.length.toString()));
-    } catch (err) {
-      console.error('Export failed:', err);
-      alert(t.exportError);
-    } finally {
-      setExporting(false);
-    }
-  };
-
   return (
     <div className="code-list">
       <div className="list-header">
@@ -95,19 +56,19 @@ export default function CodeList({ codes, onDelete, onCreate, onDeleteExpired, o
           {t.activationCodes} ({filteredCodes.length})
         </h2>
         <div className="header-actions">
-          <button onClick={onRefresh} className="refresh-button" disabled={exporting}>
+          <button onClick={onRefresh} className="refresh-button">
             {t.refresh}
           </button>
-          <button onClick={handleExport} className="export-button" disabled={exporting}>
-            {exporting ? t.exporting : t.exportCodes}
+          <button onClick={onExport} className="export-button">
+            {t.exportCodes}
           </button>
-          <button onClick={onBatchDelete} className="batch-delete-button" disabled={exporting}>
+          <button onClick={onBatchDelete} className="batch-delete-button">
             {t.batchDelete}
           </button>
-          <button onClick={onDeleteExpired} className="delete-expired-button" disabled={exporting}>
+          <button onClick={onDeleteExpired} className="delete-expired-button">
             {t.deleteExpired}
           </button>
-          <button onClick={onCreate} className="create-button" disabled={exporting}>
+          <button onClick={onCreate} className="create-button">
             {t.createCodes}
           </button>
         </div>
@@ -167,6 +128,8 @@ export default function CodeList({ codes, onDelete, onCreate, onDeleteExpired, o
           </button>
         </div>
       )}
+
+      {ModalComponent}
     </div>
   );
 }

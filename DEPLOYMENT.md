@@ -25,10 +25,20 @@ Commit → Bump Version → Build Docker → Push to Hub → Update Repo → Arg
    - `k8s/kustomization.yaml` 
    - `k8s/deployment.yaml`
    - `VERSION` file
-4. Builds multi-architecture Docker image (amd64, arm64)
-5. Pushes to Docker Hub with tags: `v2.0.1` and `latest`
-6. Commits version changes back with `[skip ci]` to avoid loops
-7. ArgoCD detects k8s/ changes and deploys new version
+4. Generates build info (version, timestamp, commit hash)
+5. Builds multi-architecture Docker image (amd64, arm64) with version info baked in
+6. Pushes to Docker Hub with tags: `v2.0.1` and `latest`
+7. Commits version changes back with `[skip ci]` to avoid loops
+8. ArgoCD detects k8s/ changes and deploys new version
+
+### VersionBadge Integration
+
+The version displayed in your app's VersionBadge component is automatically updated:
+- Version number from `package.json`
+- Build timestamp from GitHub Actions
+- Git commit hash from the build
+
+These values are injected during Docker build as environment variables and compiled into the app.
 
 ## Files Modified/Created
 

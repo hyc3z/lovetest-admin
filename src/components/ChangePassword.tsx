@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useLanguage } from '../i18n/LanguageContext';
 import { apiService } from '../services/api';
+import { useModal } from '../hooks/useModal';
 import './ChangePassword.css';
 
 interface ChangePasswordProps {
@@ -10,6 +11,7 @@ interface ChangePasswordProps {
 
 export default function ChangePassword({ onClose, onSuccess }: ChangePasswordProps) {
   const { t } = useLanguage();
+  const { showSuccess, ModalComponent } = useModal();
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -46,7 +48,7 @@ export default function ChangePassword({ onClose, onSuccess }: ChangePasswordPro
     setLoading(true);
     try {
       await apiService.changePassword(oldPassword, newPassword);
-      alert(t.passwordChanged);
+      showSuccess(t.passwordChanged);
       onSuccess();
       onClose();
     } catch (err) {
@@ -130,6 +132,7 @@ export default function ChangePassword({ onClose, onSuccess }: ChangePasswordPro
           </div>
         </form>
       </div>
+      {ModalComponent}
     </div>
   );
 }

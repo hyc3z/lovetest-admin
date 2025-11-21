@@ -1,52 +1,57 @@
 import { useState } from 'react';
 import { useLanguage } from '../i18n/LanguageContext';
 import { apiService } from '../services/api';
-import type { BatchDeleteResponse } from '../types';
 import { useModal } from '../hooks/useModal';
-import './BatchDelete.css';
+import './ExportCodes.css';
 
-interface BatchDeleteProps {
+interface ExportCodesProps {
   onClose: () => void;
-  onSuccess: () => void;
 }
 
-export default function BatchDelete({ onClose, onSuccess }: BatchDeleteProps) {
+interface PreviewResult {
+  matchedCount: number;
+  matchedCodes: string[];
+}
+
+export default function ExportCodes({ onClose }: ExportCodesProps) {
   const { t } = useLanguage();
-  const { showSuccess, showConfirm, ModalComponent } = useModal();
+  const { showSuccess, showError, ModalComponent } = useModal();
   const [pattern, setPattern] = useState('');
   const [useRegex, setUseRegex] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [previewResult, setPreviewResult] = useState<BatchDeleteResponse | null>(null);
+  const [previewResult, setPreviewResult] = useState<PreviewResult | null>(null);
   const [showPreview, setShowPreview] = useState(false);
 
   const buildPattern = (input: string, isRegex: boolean): string => {
+    if (!input.trim()) {
+      return '.*'; // 匹配所有
+    }
     if (isRegex) {
       return input;
     }
     // 如果不是正则，则进行模糊匹配（包含子串）
-    // 转义特殊字符
     const escaped = input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     return `.*${escaped}.*`;
   };
 
   const handlePreview = async () => {
     setError('');
-    
-    if (!pattern.trim()) {
-      setError(t.patternRequired);
-      return;
-    }
-
     setLoading(true);
+    
     try {
       const finalPattern = buildPattern(pattern, useRegex);
+      
+      // 使用批量删除的预览接口（dryRun=true）
       const result = await apiService.batchDeleteCodes({
         pattern: finalPattern,
         dryRun: true,
       });
       
-      setPreviewResult(result);
+      setPreviewResult({
+        matchedCount: result.matchedCount,
+        matchedCodes: result.matchedCodes,
+      });
       setShowPreview(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to preview');
@@ -55,32 +60,54 @@ export default function BatchDelete({ onClose, onSuccess }: BatchDeleteProps) {
     }
   };
 
-  const handleDelete = async () => {
-    if (!previewResult) return;
+  const handleExport = async () => {
+    if (!previewResult || previewResult.matchedCount === 0) return;
 
-    showConfirm(
-      t.batchDeleteConfirm.replace('{count}', previewResult.matchedCount.toString()),
-      async () => {
-        setLoading(true);
-        setError('');
-        
-        try {
-          const finalPattern = buildPattern(pattern, useRegex);
-          const result = await apiService.batchDeleteCodes({
-            pattern: finalPattern,
-            dryRun: false,
-          });
-          
-          showSuccess(result.message);
-          onSuccess();
-          onClose();
-        } catch (err) {
-          setError(err instanceof Error ? err.message : 'Failed to delete');
-        } finally {
-          setLoading(false);
-        }
-      }
-    );
+    setLoading(true);
+    setError('');
+    
+    try {
+      const finalPattern = buildPattern(pattern, useRegex);
+      
+      // 再次获取匹配的激活码（确保数据最新）
+      const result = await apiService.batchDeleteCodes({
+        pattern: finalPattern,
+        dryRun: true,
+      });
+      
+      // 创建文本内容（每行一个激活码）
+      const content = result.matchedCodes.join('\n');
+      
+      // 创建Blob对象
+      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+      
+      // 创建下载链接
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // 生成文件名（包含日期时间和模式）
+      const now = new Date();
+      const timestamp = now.toISOString().replace(/[:.]/g, '-').slice(0, -5);
+      const patternSuffix = pattern ? `-${pattern.replace(/[^a-zA-Z0-9]/g, '_')}` : '';
+      link.download = `activation-codes${patternSuffix}-${timestamp}.txt`;
+      
+      // 触发下载
+      document.body.appendChild(link);
+      link.click();
+      
+      // 清理
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      // 显示成功消息
+      showSuccess(t.exportSuccess.replace('{count}', result.matchedCount.toString()));
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to export');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleReset = () => {
@@ -91,27 +118,27 @@ export default function BatchDelete({ onClose, onSuccess }: BatchDeleteProps) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content batch-delete-modal" onClick={e => e.stopPropagation()}>
+      <div className="modal-content export-codes-modal" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>{t.batchDeleteTitle}</h2>
+          <h2>{t.exportCodesTitle}</h2>
           <button className="close-button" onClick={onClose}>×</button>
         </div>
 
         {!showPreview ? (
-          <div className="batch-delete-form">
+          <div className="export-codes-form">
             <div className="form-group">
-              <label htmlFor="pattern">{t.deletePattern}</label>
+              <label htmlFor="pattern">{t.exportPattern}</label>
               <input
                 id="pattern"
                 type="text"
                 value={pattern}
                 onChange={e => setPattern(e.target.value)}
-                placeholder={t.deletePatternPlaceholder}
+                placeholder={t.exportPatternPlaceholder}
                 disabled={loading}
                 className="pattern-input"
               />
               <span className="field-hint">
-                {useRegex ? t.regexHint : t.substringHint}
+                {pattern ? (useRegex ? t.regexHint : t.substringHint) : t.exportAllHint}
               </span>
             </div>
 
@@ -160,22 +187,44 @@ export default function BatchDelete({ onClose, onSuccess }: BatchDeleteProps) {
               {previewResult && previewResult.matchedCount > 0 && (
                 <>
                   <div className="matched-codes-preview">
-                    <p className="preview-label">{t.matchedCodes}:</p>
+                    <p className="preview-label">{t.exportPreviewLabel}:</p>
                     <div className="codes-list">
+                      {/* 显示前10条 */}
                       {previewResult.matchedCodes.slice(0, 10).map((code, index) => (
-                        <div key={index} className="code-item">{code}</div>
+                        <div key={index} className="code-item">
+                          <span className="code-number">{index + 1}.</span>
+                          <span className="code-text">{code}</span>
+                        </div>
                       ))}
-                      {previewResult.matchedCount > 10 && (
-                        <div className="more-indicator">
-                          {t.andMore.replace('{count}', (previewResult.matchedCount - 10).toString())}
+                      
+                      {/* 如果超过11条，显示省略号和最后一条 */}
+                      {previewResult.matchedCount > 11 && (
+                        <>
+                          <div className="more-indicator">
+                            ... ({previewResult.matchedCount - 11} {t.moreItems})
+                          </div>
+                          <div className="code-item last-item">
+                            <span className="code-number">{previewResult.matchedCount}.</span>
+                            <span className="code-text">
+                              {previewResult.matchedCodes[previewResult.matchedCodes.length - 1]}
+                            </span>
+                          </div>
+                        </>
+                      )}
+                      
+                      {/* 如果正好11条，显示第11条 */}
+                      {previewResult.matchedCount === 11 && (
+                        <div className="code-item">
+                          <span className="code-number">11.</span>
+                          <span className="code-text">{previewResult.matchedCodes[10]}</span>
                         </div>
                       )}
                     </div>
                   </div>
 
-                  <div className="warning-box">
-                    <span className="warning-icon">⚠️</span>
-                    <span>{t.deleteWarning}</span>
+                  <div className="info-box">
+                    <span className="info-icon">ℹ️</span>
+                    <span>{t.exportInfo}</span>
                   </div>
                 </>
               )}
@@ -190,11 +239,11 @@ export default function BatchDelete({ onClose, onSuccess }: BatchDeleteProps) {
               {previewResult && previewResult.matchedCount > 0 && (
                 <button 
                   type="button" 
-                  onClick={handleDelete} 
-                  className="delete-button" 
+                  onClick={handleExport} 
+                  className="export-button" 
                   disabled={loading}
                 >
-                  {loading ? t.deleting : t.confirmDelete}
+                  {loading ? t.exporting : t.confirmExport}
                 </button>
               )}
             </div>

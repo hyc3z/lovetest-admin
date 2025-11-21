@@ -34,6 +34,12 @@ jobs:
         run: |
           chmod +x scripts/bump-version.sh
           bash scripts/bump-version.sh
+          
+      - name: Set build info
+        id: build_info
+        run: |
+          echo "BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> $GITHUB_OUTPUT
+          echo "COMMIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -50,6 +56,10 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
+          build-args: |
+            VITE_APP_VERSION=${{ steps.bump.outputs.NEW_VERSION }}
+            VITE_BUILD_TIME=${{ steps.build_info.outputs.BUILD_TIME }}
+            VITE_COMMIT_HASH=${{ steps.build_info.outputs.COMMIT_HASH }}
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/${{ vars.DOCKER_IMAGE_NAME }}:${{ steps.bump.outputs.NEW_VERSION }}
             ${{ secrets.DOCKERHUB_USERNAME }}/${{ vars.DOCKER_IMAGE_NAME }}:latest
